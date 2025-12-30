@@ -772,14 +772,14 @@
                 const identityQs = ['who are you', 'what is your name', '你是谁', '你叫什么'];
                 if (identityQs.some(q => userMessage.toLowerCase().includes(q))) {
                     const resp = "I'm QuestIO, nice to meet you!";
-                    if (returnTextOnly) return `[normal]${resp}`;
+                    if (returnTextOnly) return '[normal]' + resp;
                     setTimeout(() => this.addMessage(resp, 'ai'), 1000);
                     return;
                 }
 
                 const prompt = returnTextOnly
-                    ? `You are QuestIO, a friendly person. Respond with expressions tagged like [normal], [happy], [thinking], [surprised]. Be conversational and natural.`
-                    : `You are QuestIO, a friendly person. Be conversational, natural, and helpful. Keep responses clear and engaging.`;
+                    ? 'You are QuestIO, a friendly person. Respond with expressions tagged like [normal], [happy], [thinking], [surprised]. Be conversational and natural.'
+                    : 'You are QuestIO, a friendly person. Be conversational, natural, and helpful. Keep responses clear and engaging.';
 
                 try {
                     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -800,18 +800,26 @@
                     });
 
                     if (!res.ok) {
-                        throw new Error(`API error: ${res.status}`);
+                        const errorData = await res.json().catch(() => ({}));
+                        console.error('API error:', res.status, errorData);
+                        throw new Error('API error: ' + res.status);
                     }
 
                     const data = await res.json();
+                    console.log('API Response:', data);
+                    
+                    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                        throw new Error('Invalid API response structure');
+                    }
+                    
                     const text = data.choices[0].message.content.trim();
 
-                    if (returnTextOnly) return `[normal]${text}`;
+                    if (returnTextOnly) return '[normal]' + text;
                     setTimeout(() => this.addMessage(text, 'ai'), 1000);
                 } catch (err) {
                     console.error('API Error:', err);
-                    const fallback = 'Sorry, having some trouble right now.';
-                    if (returnTextOnly) return `[normal]${fallback}`;
+                    const fallback = 'Sorry, having some trouble right now. Please try again.';
+                    if (returnTextOnly) return '[normal]' + fallback;
                     setTimeout(() => this.addMessage(fallback, 'ai'), 1000);
                 }
             }
