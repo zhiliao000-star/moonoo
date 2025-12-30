@@ -782,11 +782,14 @@
                     : 'You are QuestIO, a friendly person. Be conversational, natural, and helpful. Keep responses clear and engaging.';
 
                 try {
+                    console.log('Sending request to OpenRouter...');
                     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': 'Bearer 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'
+                            'Authorization': 'Bearer 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',
+                            'HTTP-Referer': window.location.origin,
+                            'X-Title': 'QuestIO'
                         },
                         body: JSON.stringify({
                             model: 'deepseek/deepseek-r1-0528:free',
@@ -799,25 +802,37 @@
                         })
                     });
 
+                    console.log('Response status:', res.status);
+
                     if (!res.ok) {
-                        const errorData = await res.json().catch(() => ({}));
-                        console.error('API error:', res.status, errorData);
+                        const errorText = await res.text();
+                        console.error('API error response:', errorText);
+                        try {
+                            const errorData = JSON.parse(errorText);
+                            console.error('Parsed error:', errorData);
+                        } catch (e) {
+                            console.error('Could not parse error response');
+                        }
                         throw new Error('API error: ' + res.status);
                     }
 
                     const data = await res.json();
-                    console.log('API Response:', data);
+                    console.log('Full API Response:', data);
                     
                     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                        console.error('Invalid response structure:', data);
                         throw new Error('Invalid API response structure');
                     }
                     
                     const text = data.choices[0].message.content.trim();
+                    console.log('Extracted text:', text);
 
                     if (returnTextOnly) return '[normal]' + text;
                     setTimeout(() => this.addMessage(text, 'ai'), 1000);
                 } catch (err) {
-                    console.error('API Error:', err);
+                    console.error('Full Error Details:', err);
+                    console.error('Error name:', err.name);
+                    console.error('Error message:', err.message);
                     const fallback = 'Sorry, having some trouble right now. Please try again.';
                     if (returnTextOnly) return '[normal]' + fallback;
                     setTimeout(() => this.addMessage(fallback, 'ai'), 1000);
