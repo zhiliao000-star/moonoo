@@ -1,0 +1,1852 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QuestIO</title>
+    <style>
+        body {
+            background-image: url('questio.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.black-bg {
+            background-color: black;
+        }
+
+        body.black-bg .title .letter,
+        body.black-bg .sidebar-title,
+        body.black-bg .settings-button svg {
+            color: white;
+        }
+
+        .particle-sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 0;
+            height: 100vh;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(0, 0, 0, 0.2);
+            transition: width 0.3s ease;
+            z-index: 10;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .particle-sidebar.active {
+            width: 18.75vw;
+        }
+
+        .particle-sidebar.exploded {
+            transform: translateX(-100%);
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .input-box.exploded {
+            transform: translateY(200px) scale(0.1);
+            opacity: 0;
+            transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 15px;
+            flex-shrink: 0;
+        }
+
+        .sidebar-title {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .settings-button {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+
+        .settings-button svg {
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        .settings-button:hover svg {
+            color: #f0f0f0;
+            transform: rotate(90deg);
+        }
+
+        .settings-menu {
+            position: absolute;
+            top: 80px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 8px;
+            padding: 8px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 100;
+            min-width: 120px;
+        }
+
+        .settings-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .settings-option {
+            padding: 10px 15px;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .settings-option:last-child {
+            border-bottom: none;
+        }
+
+        .settings-option:hover {
+            background: rgba(0, 0, 0, 0.05);
+            color: #000;
+        }
+
+        .settings-option.active {
+            background: rgba(0, 0, 0, 0.1);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .questions-container {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            scrollbar-width: none;
+    -ms-overflow-style: none;
+        }
+
+        .questions-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .preset-questions {
+            padding: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .preset-title {
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        .preset-button {
+            display: block;
+            width: 100%;
+            padding: 8px 12px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preset-button:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.4);
+            transform: translateX(5px);
+        }
+
+        .preset-button:active {
+            transform: translateX(2px);
+        }
+
+        .discord-sidebar-button {
+            padding: 15px;
+            margin: 15px;
+            background: #5865F2;
+            color: white;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            box-shadow: 0 2px 10px rgba(88, 101, 242, 0.3);
+            transition: all 0.3s;
+            font-size: 14px;
+            flex-shrink: 0;
+            border: none;
+            cursor: pointer;
+        }
+
+        .discord-sidebar-button:hover {
+            background: #4752C4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(88, 101, 242, 0.5);
+        }
+
+        .discord-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        .title {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            transition: all 0.5s ease;
+            color: white;
+            font-size: 60pt;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            margin-bottom: -10vh;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .title.minimized {
+            display: none;
+        }
+
+        .logo {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            z-index: 1000;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo.show {
+            display: block;
+        }
+
+        .title .letter {
+            display: inline-block;
+            font-size: 60pt;
+            font-weight: bold;
+            color: white;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            transform-origin: center center;
+        }
+
+        .title.exploded .letter:not(.special-o) {
+            transform: translate(
+                calc(var(--explode-x, 0) * 200px),
+                calc(var(--explode-y, 0) * 200px)
+            ) rotate(calc(var(--explode-rotate, 0) * 1deg));
+            opacity: 0;
+            filter: blur(5px);
+        }
+
+        .title.exploded .special-o {
+            position: fixed !important;
+            top: 20px !important;
+            right: 20px !important;
+            z-index: 1000;
+            transform: scale(0.8);
+            transition: all 0.8s ease-out;
+            color: white !important;
+            opacity: 1 !important;
+        }
+
+        .title.exploded .letter[data-letter="I"] {
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+
+        .special-o {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .special-o::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.8) 0%, 
+                rgba(255, 255, 255, 0) 50%, 
+                rgba(255, 255, 255, 0.8) 100%);
+            mask: linear-gradient(135deg, 
+                transparent 0%, 
+                transparent 45%, 
+                black 50%, 
+                transparent 55%, 
+                transparent 100%);
+            -webkit-mask: linear-gradient(135deg, 
+                transparent 0%, 
+                transparent 45%, 
+                black 50%, 
+                transparent 55%, 
+                transparent 100%);
+            pointer-events: none;
+        }
+
+        .special-o.active {
+            background: linear-gradient(135deg, 
+                rgba(255, 255, 255, 0.8) 0%, 
+                rgba(255, 255, 255, 0) 50%, 
+                rgba(255, 255, 255, 0.8) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        .question-item {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px;
+            margin: 10px;
+            color: white;
+            font-size: 14px;
+            line-height: 1.4;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .question-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .question-item:first-child {
+            margin-top: 0;
+        }
+
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            gap: 20vh;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            width: 100%;
+        }
+
+        .main-content.has-message {
+            gap: 25vh;
+        }
+
+        .main-content.shifted {
+            transform: translateX(9.375vw);
+        }
+
+        .conversation-container {
+            position: absolute;
+            left: 20vw;
+            top: 14vh;
+            width: 60vw;
+            max-height: 70vh;
+            overflow-y: auto;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 10px;
+            padding: 10px;
+            scrollbar-width: none;
+    -ms-overflow-style: none;
+        }
+
+        .conversation-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .conversation-container * {
+            background-color: transparent !important;
+            background: transparent !important;
+        }
+
+        .message {
+            color: white;
+            font-size: 18pt;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: left;
+            max-width: 100%;
+            line-height: 1.8;
+            margin-bottom: 24px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease-out;
+            word-wrap: break-word;
+
+            padding: 16px 0;
+            letter-spacing: 0.3px;
+        }
+
+        .message > *:not(.code-block) {
+            background-color: transparent !important;
+            background: transparent !important;
+        }
+
+
+        div, span, p, br {
+            background-color: transparent !important;
+            background: transparent !important;
+        }
+
+        .message.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .message.user {
+            text-align: left;
+            color: #ffffff;
+            background: transparent !important;
+            border-radius: 0;
+            padding: 8px 0;
+            margin: 12px 0;
+            max-width: 100%;
+            box-shadow: none;
+            border: none;
+            backdrop-filter: none;
+        }
+
+        .message.ai {
+            text-align: left;
+            color: #a0d2ff;
+            font-weight: 400;
+            background: transparent !important;
+            border-radius: 0;
+            padding: 8px 0;
+            margin: 12px 0;
+            max-width: 100%;
+            box-shadow: none;
+            border: none;
+            backdrop-filter: none;
+        }
+
+        .input-box {
+            width: 60vw;
+            padding: 20px;
+            border: 3px double white;
+            border-radius: 25px;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-height: 20px;
+            overflow-wrap: break-word;
+            cursor: text;
+            -webkit-user-modify: read-write-plaintext-only;
+            -moz-user-modify: read-write-plaintext-only;
+            background-clip: padding-box;
+            -webkit-background-clip: padding-box;
+        }
+
+        .input-box:empty:before {
+            content: attr(data-placeholder);
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .input-box * {
+            background-color: transparent !important;
+            background: transparent !important;
+        }
+
+        .input-box:focus,
+        .input-box:focus-within {
+            background-color: rgba(0, 0, 0, 0.3) !important;
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+        }
+
+
+
+        .input-box.moved-down {
+            transform: translateY(389px);
+            transition: transform 0.3s ease;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.8s ease-out;
+        }
+
+        .particle.explode {
+            opacity: 1;
+            transform: translate(var(--tx), var(--ty)) scale(0.5);
+        }
+
+        .ai-emoji-container {
+            display: none !important;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            opacity: 0;
+            transform: scale(0.8) translateY(-20px);
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            pointer-events: none;
+        }
+
+        .ai-emoji-container.show {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+        }
+
+        .ai-emoji {
+            font-size: 64px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            animation-duration: 2s;
+            animation-iteration-count: infinite;
+            animation-timing-function: ease-in-out;
+        }
+
+        .emoji-bounce { animation-name: emojiBounce; }
+        .emoji-wiggle { animation-name: emojiWiggle; }
+        .emoji-spin { animation-name: emojiSpin; }
+        .emoji-pulse { animation-name: emojiPulse; }
+        .emoji-float { animation-name: emojiFloat; }
+        .emoji-shake { animation-name: emojiShake; }
+        .emoji-heartbeat { animation-name: emojiHeartbeat; }
+        .emoji-tada { animation-name: emojiTada; }
+        .emoji-jump { animation-name: emojiJump; }
+        .emoji-wave { animation-name: emojiWave; }
+
+        @keyframes emojiBounce {
+            0%, 20%, 53%, 80%, 100% { transform: translate3d(0, 0, 0); }
+            40%, 43% { transform: translate3d(0, -15px, 0); }
+            70% { transform: translate3d(0, -8px, 0); }
+            90% { transform: translate3d(0, -4px, 0); }
+        }
+
+        @keyframes emojiWiggle {
+            0%, 7% { transform: rotateZ(0); }
+            15% { transform: rotateZ(-15deg); }
+            20% { transform: rotateZ(10deg); }
+            25% { transform: rotateZ(-10deg); }
+            30% { transform: rotateZ(6deg); }
+            35% { transform: rotateZ(-4deg); }
+            40%, 100% { transform: rotateZ(0); }
+        }
+
+        @keyframes emojiSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes emojiPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes emojiFloat {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        @keyframes emojiShake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        @keyframes emojiHeartbeat {
+            0% { transform: scale(1); }
+            14% { transform: scale(1.3); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.3); }
+            70% { transform: scale(1); }
+        }
+
+        @keyframes emojiTada {
+            0% { transform: scale(1); }
+            10%, 20% { transform: scale(0.9) rotate(-3deg); }
+            30%, 50%, 70%, 90% { transform: scale(1.1) rotate(3deg); }
+            40%, 60%, 80% { transform: scale(1.1) rotate(-3deg); }
+            100% { transform: scale(1) rotate(0); }
+        }
+
+        @keyframes emojiJump {
+            0%, 20%, 53%, 80%, 100% {
+                animation-timing-function: cubic-bezier(0.215, 0.61, 0.355, 1);
+                transform: translate3d(0, 0, 0);
+            }
+            40%, 43% {
+                animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+                transform: translate3d(0, -20px, 0);
+            }
+            70% {
+                animation-timing-function: cubic-bezier(0.755, 0.05, 0.855, 0.06);
+                transform: translate3d(0, -10px, 0);
+            }
+            90% { transform: translate3d(0, -4px, 0); }
+        }
+
+        @keyframes emojiWave {
+            0% { transform: rotate(0deg); }
+            10% { transform: rotate(14deg); }
+            20% { transform: rotate(-8deg); }
+            30% { transform: rotate(14deg); }
+            40% { transform: rotate(-4deg); }
+            50% { transform: rotate(10deg); }
+            60%, 100% { transform: rotate(0deg); }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+        }
+
+        .modal-content {
+            background: #1a1a1a;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(255,255,255,0.1);
+        }
+
+        .modal p {
+            color: white;
+            font-size: 1.2em;
+            margin-bottom: 20px;
+        }
+
+        .modal-buttons button {
+            background: #5865F2;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            margin: 0 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: opacity 0.3s;
+        }
+
+        .modal-buttons button:hover {
+            opacity: 0.9;
+        }
+
+        .modal-buttons button:last-child {
+            background: #666;
+        }
+
+        :root {
+            --eye-color: #50e3c2;      
+            --shadow-color: #1c1c9b;   
+            --eye-size: 200px;         
+            --shadow-offset: 8px;      
+        }
+        .face-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+        .eyes-container {
+            display: flex;
+            gap: 200px;
+            margin-bottom: 50px;
+        }
+        .eye {
+            width: var(--eye-size);
+            height: var(--eye-size);
+            background-color: var(--eye-color);
+            border-radius: 50%;
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0 0 var(--shadow-color);
+            transition: all 0.3s ease;
+        }
+        .mouth {
+            width: var(--eye-size);
+            height: calc(var(--eye-size) * 0.5);
+            background-color: var(--eye-color);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            opacity: 0;
+            box-shadow: var(--shadow-offset) var(--shadow-offset) 0 0 var(--shadow-color);
+        }
+        .expression-normal .eye {
+            border-radius: 50%;
+        }
+        .expression-happy .eye {
+            height: calc(var(--eye-size) * 0.6);
+            border-radius: 0 0 50% 50%;
+        }
+        .expression-happy .mouth {
+            opacity: 1;
+            height: calc(var(--eye-size) * 0.3);
+            border-radius: 0 0 50% 50%;
+        }
+        .expression-thinking .eye {
+            border-radius: 50%;
+        }
+        .expression-thinking .eye:nth-child(1) {
+            transform: scale(0.9) translateY(-10px);
+        }
+        .expression-thinking .eye:nth-child(2) {
+            transform: scale(1.1);
+        }
+        .expression-surprised .eye {
+            border-radius: 50%;
+            transform: scale(1.2);
+        }
+
+    .code-block {
+        background: #2a2a3c;
+        border-radius: 10px;
+        margin: 12px 0;
+        overflow: hidden;
+        font-family: 'Fira Code', monospace;
+        border: 1px solid rgba(255,255,255,0.1);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+
+    .code-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #1f1f2b;
+        padding: 4px 10px;
+        font-size: 0.8rem;
+        color: #ccc;
+        font-weight: 500;
+        height: auto;
+        max-height: 50px;
+    }
+
+    .code-lang {
+        color: #8ab4f8;
+        text-transform: uppercase;
+    }
+
+    .copy-button {
+        background: rgba(255,255,255,0.1);
+        border: none;
+        color: #bebebe;
+        padding: 2px 6px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .copy-button:hover {
+        background: rgba(252, 252, 252, 0.2);
+        color: #8ab4f8;
+    }
+
+    .code-block pre {
+        margin: 0;
+        padding: 10px 12px;
+        overflow-x: auto;
+        font-size: 0.85rem;
+        color: #eaeaea;
+        background: transparent;
+    }
+
+    .code-block code {
+        white-space: pre;
+        display: block;
+    }
+
+    .code-block,
+    .code-block pre,
+    .code-block code {
+        background-color: #2a2a3c !important;
+    }
+
+    .code-buttons {
+        display: flex;
+        gap: 6px;
+    }
+
+    .try-button {
+        background: rgba(138, 180, 248, 0.1);
+        border: none;
+        color: #8ab4f8;
+        padding: 3px 8px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .try-button:hover {
+        background: rgba(138, 180, 248, 0.25);
+    }
+
+
+    .try-window {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(0.9);
+        background: #1e1e2e;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+        width: 70%;
+        max-width: 800px;
+        height: 500px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        opacity: 0;
+        transition: all 0.25s ease;
+        z-index: 9999;
+    }
+
+    .try-window.show {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    .try-window-header {
+        background: #2b2b3d;
+        color: #ddd;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .try-window-header .try-close {
+        background: none;
+        border: none;
+        color: #aaa;
+        font-size: 1.4rem;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .try-window-header .try-close:hover {
+        color: #8ab4f8;
+    }
+
+    .try-iframe {
+        flex: 1;
+        border: none;
+        background: #ffffff;
+    }
+
+    .try-window::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #1e1e2e;
+        z-index: -1;
+    }
+
+    </style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&display=swap');
+        * {
+            font-family: 'Nunito', sans-serif;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="black-bg">
+    <div class="particle-sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-title">QuestIO</div>
+            <div class="settings-button" id="settingsButton">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 15a3 3 0 100-6 3 3 0 000 6z" stroke="currentColor" stroke-width="2"/>
+                    <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" stroke-width="2"/>
+                </svg>
+            </div>
+        </div>
+        <div class="settings-menu" id="settingsMenu">
+            <div class="settings-option" data-bg="black">Black</div>
+            <div class="settings-option" data-lang="en">English</div>
+            <div class="settings-option" data-lang="zh">中文</div>
+            <div class="settings-option" data-lang="ja">日本語</div>
+            <div class="settings-option" data-lang="ko">한국어</div>
+        </div>
+
+        <div class="questions-container" id="questionsContainer"></div>
+        
+        <button class="discord-sidebar-button" onclick="showConfirmModal(event)">
+            <i class="fab fa-discord discord-icon"></i>
+            Join Discord
+        </button>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="title" id="title">
+            <span class="letter" data-letter="Q">Q</span>
+            <span class="letter" data-letter="u">u</span>
+            <span class="letter" data-letter="e">e</span>
+            <span class="letter" data-letter="s">s</span>
+            <span class="letter" data-letter="t">t</span>
+            <span class="letter" data-letter="I">I</span>
+            <span class="letter special-o" data-letter="O">O</span>
+        </div>
+
+        <img src="https://i.imgur.com/qZFEa5K.png" alt="QuestIO Logo" class="logo" id="logo">
+
+        <div class="conversation-container" id="conversationContainer"></div>
+        <div class="input-box" id="inputBox" contenteditable="true" data-placeholder="Enter your question..."></div>
+    </div>
+
+    <div class="ai-emoji-container" id="aiEmojiContainer">
+        <div class="ai-emoji" id="aiEmoji">🤖</div>
+    </div>
+    
+    <!-- Voice interaction face, hidden by default -->
+    <div class="face-container expression-normal" id="faceContainer" style="display: none;">
+        <div class="eyes-container">
+            <div class="eye"></div>
+            <div class="eye"></div>
+        </div>
+        <div class="mouth"></div>
+    </div>
+
+
+    <script>
+        class Sidebar {
+            constructor() {
+                this.sidebar = document.getElementById('sidebar');
+                this.mainContent = document.getElementById('mainContent');
+                this.title = document.getElementById('title');
+                this.inputBox = document.getElementById('inputBox');
+                this.conversationContainer = document.getElementById('conversationContainer');
+                this.conversationContainer.style.display = 'none';
+                this.questionsContainer = document.getElementById('questionsContainer');
+                this.aiEmojiContainer = document.getElementById('aiEmojiContainer');
+                this.aiEmoji = document.getElementById('aiEmoji');
+                this.settingsButton = document.getElementById('settingsButton');
+                this.settingsMenu = document.getElementById('settingsMenu');
+                this.logo = document.getElementById('logo');
+                this.faceContainer = document.getElementById('faceContainer');
+                
+                this.isActive = false;
+                this.isAnimating = false;
+                this.questions = [];
+                this.isSettingsMenuOpen = false;
+                this.currentBackground = 'black';
+                this.messageCount = 0;
+                this.isProcessingMessage = false;
+                this.currentLanguage = 'en';
+
+                this.translations = {
+                    en: {
+                        placeholder: "Enter your question...",
+                        discord: "Join Discord",
+                        black: "Black",
+                        english: "English",
+                        chinese: "中文",
+                        japanese: "日本語",
+                        korean: "한국어",
+                        whatIsQuestIO: "What is QuestIO?",
+                        howCanYouHelp: "How can you help me?",
+                        tellMeJoke: "Tell me a joke",
+                        whatIsWeather: "What is the weather like?",
+                        explainQuantum: "Explain quantum physics",
+                        giveStudyTips: "Give me study tips",
+                        recommendBook: "Recommend a book",
+                        helpLearnCoding: "Help me learn coding"
+                    },
+                    zh: {
+                        placeholder: "请输入您的问题...",
+                        discord: "加入Discord",
+                        black: "黑色",
+                        english: "English",
+                        chinese: "中文",
+                        japanese: "日本語",
+                        korean: "한국어",
+                        whatIsQuestIO: "什么是QuestIO？",
+                        howCanYouHelp: "你能帮我什么？",
+                        tellMeJoke: "给我讲个笑话",
+                        whatIsWeather: "今天天气如何？",
+                        explainQuantum: "用量子物理解释",
+                        giveStudyTips: "给我学习建议",
+                        recommendBook: "推荐一本书",
+                        helpLearnCoding: "帮我学编程"
+                    },
+                    ja: {
+                        placeholder: "質問を入力してください...",
+                        discord: "Discordに参加",
+                        black: "黒",
+                        english: "English",
+                        chinese: "中文",
+                        japanese: "日本語",
+                        korean: "한국어",
+                        whatIsQuestIO: "QuestIOとは？",
+                        howCanYouHelp: "どのようにお手伝いできますか？",
+                        tellMeJoke: "ジョークを言って",
+                        whatIsWeather: "天気はどうですか？",
+                        explainQuantum: "量子物理学を説明",
+                        giveStudyTips: "学習アドバイスをくれ",
+                        recommendBook: "本をおすすめして",
+                        helpLearnCoding: "コーディングを学びたい"
+                    },
+                    ko: {
+                        placeholder: "질문을 입력하세요...",
+                        discord: "Discord 참여",
+                        black: "검정",
+                        english: "English",
+                        chinese: "中文",
+                        japanese: "日本語",
+                        korean: "한국어",
+                        whatIsQuestIO: "QuestIO가 뭐야?",
+                        howCanYouHelp: "어떻게 도와줄 수 있어?",
+                        tellMeJoke: "농담 들려줘",
+                        whatIsWeather: "날씨가 어때?",
+                        explainQuantum: "양자물리학 설명해줘",
+                        giveStudyTips: "공부 팁 줘",
+                        recommendBook: "책 추천해줘",
+                        helpLearnCoding: "코딩 배우고 싶어"
+                    }
+                };
+
+                this.recognition = null;
+                this.isProcessingVoice = false;
+                this.voices = [];
+
+                this.init();
+            }
+            
+            init() {
+                speechSynthesis.onvoiceschanged = () => this.voices = speechSynthesis.getVoices();
+                document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+                this.sidebar.addEventListener('mouseleave', (e) => this.handleMouseLeave(e));
+                this.inputBox.addEventListener('keydown', (e) => this.handleKeyDown(e));
+                this.inputBox.addEventListener('focus', () => this.handleInputFocus());
+                this.inputBox.addEventListener('blur', () => this.handleInputBlur());
+                this.inputBox.addEventListener('input', () => this.cleanInputBox());
+                this.initSpecialO();
+                this.initSettings();
+                this.changeBackground('black');
+                this.changeLanguage('en');
+            }
+            
+            initSpecialO() {
+                const specialO = document.querySelector('.special-o');
+                if (specialO) {
+                    specialO.addEventListener('click', (e) => {
+                        this.handleSpecialOClick(e);
+                    });
+                }
+            }
+            
+            initSettings() {
+                this.settingsButton.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleSettingsMenu();
+                });
+                
+                const settingsOptions = this.settingsMenu.querySelectorAll('.settings-option');
+                settingsOptions.forEach(option => {
+                    option.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const bgType = option.getAttribute('data-bg');
+                        const langType = option.getAttribute('data-lang');
+                        
+                        if (bgType) {
+                            this.changeBackground(bgType);
+                        } else if (langType) {
+                            this.changeLanguage(langType);
+                        }
+                        this.closeSettingsMenu();
+                    });
+                });
+                
+                document.addEventListener('click', () => {
+                    this.closeSettingsMenu();
+                });
+                
+                this.settingsMenu.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+            }
+            
+            toggleSettingsMenu() {
+                this.isSettingsMenuOpen ? this.closeSettingsMenu() : this.openSettingsMenu();
+            }
+            
+            openSettingsMenu() {
+                this.settingsMenu.classList.add('active');
+                this.isSettingsMenuOpen = true;
+            }
+            
+            closeSettingsMenu() {
+                this.settingsMenu.classList.remove('active');
+                this.isSettingsMenuOpen = false;
+            }
+            
+            changeBackground(bgType) {
+                document.body.className = `${bgType}-bg`;
+                this.currentBackground = bgType;
+                
+                const settingsOptions = this.settingsMenu.querySelectorAll('.settings-option');
+                settingsOptions.forEach(option => {
+                    option.classList.remove('active');
+                    if (option.getAttribute('data-bg') === bgType) {
+                        option.classList.add('active');
+                    }
+                });
+            }
+            
+            changeLanguage(langCode) {
+                this.currentLanguage = langCode;
+                const t = this.translations[langCode];
+                
+                // Update placeholder
+                this.inputBox.setAttribute('data-placeholder', t.placeholder);
+                
+                // Update Discord button text
+                const discordButton = document.querySelector('.discord-sidebar-button');
+                if (discordButton) {
+                    discordButton.innerHTML = `<i class="fab fa-discord discord-icon"></i>${t.discord}`;
+                }
+                
+                // Update settings menu options
+                const settingsOptions = this.settingsMenu.querySelectorAll('.settings-option');
+                settingsOptions.forEach(option => {
+                    const bgType = option.getAttribute('data-bg');
+                    const langType = option.getAttribute('data-lang');
+                    
+                    if (bgType === 'black') {
+                        option.textContent = t.black;
+                    } else if (langType === 'en') {
+                        option.textContent = t.english;
+                    } else if (langType === 'zh') {
+                        option.textContent = t.chinese;
+                    } else if (langType === 'ja') {
+                        option.textContent = t.japanese;
+                    } else if (langType === 'ko') {
+                        option.textContent = t.korean;
+                    }
+                    
+                    // Set active state
+                    option.classList.remove('active');
+                    if (langType === langCode || bgType === this.currentBackground) {
+                        option.classList.add('active');
+                    }
+                });
+                
+                // Update HTML lang attribute
+                document.documentElement.lang = langCode;
+            }
+            
+            handleSpecialOClick(e) {
+                const specialO = e.currentTarget;
+                const isExploded = this.title.classList.contains('exploded');
+                
+                if (!isExploded) {
+                    this.explodeTitle(specialO);
+                    this.mainContent.style.display = 'none';
+                    this.faceContainer.style.display = 'flex';
+                    this.initVoice();
+                } else {
+                    this.restoreTitle(specialO);
+                    this.mainContent.style.display = 'flex';
+                    this.faceContainer.style.display = 'none';
+                    if (this.recognition) {
+                        this.recognition.stop();
+                        console.log('Voice recognition stopped.');
+                    }
+                }
+            }
+            
+            explodeTitle(specialO) {
+                const letters = this.title.querySelectorAll('.letter:not(.special-o)');
+                
+                this.title.classList.add('exploded');
+                this.sidebar.classList.add('exploded');
+                this.inputBox.classList.add('exploded');
+                
+                letters.forEach((letter, index) => {
+                    const angle = Math.random() * Math.PI * 2;
+                    const distance = 1.5 + Math.random() * 2.5;
+                    const rotate = (Math.random() - 0.5) * 360;
+                    letter.style.setProperty('--explode-x', Math.cos(angle) * distance);
+                    letter.style.setProperty('--explode-y', Math.sin(angle) * distance);
+                    letter.style.setProperty('--explode-rotate', rotate);
+                });
+            }
+            
+            restoreTitle(specialO) {
+                this.title.classList.remove('exploded');
+                this.sidebar.classList.remove('exploded');
+                this.inputBox.classList.remove('exploded');
+                if (this.logo) this.logo.classList.remove('show');
+            }
+            
+            handleMouseMove(e) {
+                if (e.clientX <= 50 && !this.isActive && !this.isAnimating && !this.title.classList.contains('exploded')) {
+                    this.activate();
+                }
+            }
+            
+            handleMouseLeave(e) {
+                if (this.isActive && !this.isAnimating && e.clientX > this.sidebar.getBoundingClientRect().right) {
+                    this.deactivate();
+                }
+            }
+            
+            handleKeyDown(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    
+                    if (this.isProcessingMessage) return;
+                    
+                    const message = this.inputBox.textContent.trim();
+                    if (message) {
+                        this.isProcessingMessage = true;
+                        
+                        this.inputBox.classList.add('moved-down');
+                        this.addUserMessage(message);
+                        this.getAIResponse(message);
+                        this.explodeTitleAndShowMessage(message);
+                        this.inputBox.textContent = '';
+                        
+                        setTimeout(() => {
+                            this.isProcessingMessage = false;
+                        }, 2000);
+                    }
+                }
+            }
+
+            addUserMessage(text) {
+                this.addMessage(text, 'user');
+            }
+
+            addAIMessage(text) {
+                this.addMessage(text, 'ai');
+            }
+
+            addMessage(text, type) {
+                const messageElement = document.createElement('div');
+                messageElement.className = `message ${type}`;
+                messageElement.style.backgroundColor = 'transparent';
+                messageElement.style.background = 'transparent';
+                
+                const formattedText = this.formatAIText(text);
+                
+                if (type === 'ai') {
+                    this.typeWriterEffect(messageElement, formattedText);
+                } else {
+                    messageElement.innerHTML = formattedText;
+                }
+                
+                this.conversationContainer.appendChild(messageElement);
+                setTimeout(() => messageElement.classList.add('show'), 10);
+                setTimeout(() => this.cleanMessageElements(), 50);
+                this.scrollToBottom();
+            }
+            
+            cleanMessageElements() {
+                const messages = this.conversationContainer.querySelectorAll('.message');
+                messages.forEach(message => {
+                    message.style.backgroundColor = 'transparent';
+                    message.style.background = 'transparent';
+                    const childElements = message.querySelectorAll('*');
+                    childElements.forEach(child => {
+                        child.style.backgroundColor = 'transparent';
+                        child.style.background = 'transparent';
+                    });
+                });
+            }
+
+            scrollToBottom() {
+                this.conversationContainer.scrollTop = this.conversationContainer.scrollHeight;
+            }
+            
+            async makeApiRequest(url, apiKey, prompt, userMessage, isPrimary) {
+                console.log(`Making API request to ${isPrimary ? 'primary' : 'backup'} server: ${url}`);
+                console.log('API Key (masked): ' + apiKey.substring(0, 8) + '...' + apiKey.substring(apiKey.length - 8));
+                console.log('User message:', userMessage);
+                console.log('System prompt:', prompt);
+                
+                return await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + apiKey
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-3.5-turbo',
+                        messages: [
+                            {
+                                role: 'system',
+                                content: prompt
+                            },
+                            {
+                                role: 'user',
+                                content: userMessage
+                            }
+                        ],
+                        temperature: 0.7,
+                        max_tokens: 1000
+                    })
+                });
+            }
+            
+            handleInputFocus() {
+                this.inputBox.style.boxShadow = '0 0 10px rgba(255, 255, 255, 0.3)';
+                this.cleanInputBox();
+            }
+            
+            handleInputBlur() {
+                this.inputBox.style.boxShadow = 'none';
+                this.cleanInputBox();
+            }
+            
+            cleanInputBox() {
+                const elements = this.inputBox.querySelectorAll('*');
+                elements.forEach(el => {
+                    el.style.backgroundColor = 'transparent';
+                    el.style.background = 'transparent';
+                });
+            }
+            
+            explodeTitleAndShowMessage(message) {
+                this.title.classList.add('minimized');
+                if (this.logo) this.logo.classList.add('show');
+                this.mainContent.classList.add('has-message');
+                this.conversationContainer.style.display = 'block';
+                this.addQuestionToSidebar(message);
+            }
+            
+            async getAIResponse(userMessage, returnTextOnly = false) {
+                try {
+                    let prompt;
+                    if (returnTextOnly) {
+                        prompt = `You are QuestIO, a friendly person who enjoys chatting with others. You are NOT an AI assistant - you are a human named QuestIO.
+
+2.  Place tags where a real person's expression would change. Start with a tag.
+3.  The tags are for animation only and will NOT be spoken.
+4.  Use a warm, natural, and human-like tone. Keep sentences short and conversational.
+5.  When introducing yourself or when asked about your identity, you MUST say "I'm QuestIO" or "I'm QuestIO, nice to meet you".
+6. Never mention AI, assistant, or any technology-related terms. You are a human named QuestIO.
+7. If someone asks "who are you", "what's your name", or similar questions, always identify yourself as QuestIO, a person.
+Example: [normal]Hi! I'm QuestIO. [thinking]Let me think about that... [happy]Got it!`;
+                    } else {
+                        prompt = `You are QuestIO, a friendly person who enjoys chatting with others. You are NOT an AI assistant - you are a human named QuestIO. When introducing yourself or when asked about your identity, you MUST say "I'm QuestIO" or "I'm QuestIO, nice to meet you". Never mention AI, assistant, or any technology-related terms.`;
+                    }
+                    
+                    const identityQuestions = ['你是谁', '你叫什么名字', 'who are you', 'what is your name', '你是谁？', '你叫什么']
+                    const isIdentityQuestion = identityQuestions.some(q => 
+                        userMessage.toLowerCase().includes(q.toLowerCase())
+                    );
+                    
+                    let aiResponse;
+                    
+                    if (isIdentityQuestion) {
+                        aiResponse = "I'm QuestIO, nice to meet you!";
+                    } else {
+                        const apiUrl = 'https://api.chatanywhere.org/v1/chat/completions';
+                        const apiKey = 'sk-lu7e9BiiipBNXt19OU4edBkjpXhbLxjh2GpBIqv1bnBV3EEp';
+                        
+                        try {
+                            const response = await this.makeApiRequest(apiUrl, apiKey, prompt, userMessage, true);
+                            
+                            console.log('API response status:', response.status);
+                            
+                            if (!response.ok) {
+                                const errorData = await response.json().catch(() => ({}));
+                                console.error('API request failed with data:', errorData);
+                                throw new Error(`API request failed: ${response.status} - ${JSON.stringify(errorData)}`);
+                            }
+                            
+                            const data = await response.json();
+                            console.log('API response data:', data);
+                            
+                            if (data.choices && data.choices.length > 0 && data.choices[0].message) {
+                                aiResponse = data.choices[0].message.content;
+                                console.log('Successfully received AI response');
+                            } else {
+                                throw new Error('Invalid API response format');
+                            }
+                            
+                        } catch (error) {
+                            console.error('API error:', error);
+                            
+                            aiResponse = `Sorry, I'm having trouble connecting to the AI service. Error: ${error.message}`;
+                            console.log('Using error response');
+                        }
+                    }
+                    
+                    const cleanResponse = this.cleanAIResponse(aiResponse);
+
+                    if (returnTextOnly) {
+                        return `[normal]${cleanResponse}`;
+                    }
+                    
+                    const emoji = this.extractEmojiFromResponse(cleanResponse);
+                    
+                    setTimeout(() => this.showAIResponse(cleanResponse), 1000);
+                    
+                } catch (error) {
+                    console.error('AI API call error:', error);
+                    
+                    const identityQuestions = ['你是谁', '你叫什么名字', 'who are you', 'what is your name', '你是谁？', '你叫什么'];
+                    const isIdentityQuestion = identityQuestions.some(q => 
+                        userMessage.toLowerCase().includes(q.toLowerCase())
+                    );
+                    
+                    let errorMessage;
+                    if (isIdentityQuestion) {
+                        errorMessage = "I'm QuestIO, nice to meet you!";
+                    } else {
+                        errorMessage = 'Sorry, having some trouble right now.';
+                    }
+                    
+                    if (returnTextOnly) return `[normal]${errorMessage}`;
+                    setTimeout(() => this.showAIResponse(errorMessage), 1000);
+                }
+            }
+            
+            extractEmojiFromResponse(response) {
+                const emojiRegex = /[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+                const match = response.match(emojiRegex);
+                return match ? match[0] : '🤖';
+            }
+            
+            removeEmojiFromResponse(response) {
+                return response.replace(/[\u{1F300}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{1F900}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '').trim();
+            }
+            
+            cleanAIResponse(response) {
+                let cleanResponse = response.replace(/\n{3,}/g, '\n\n');
+                cleanResponse = cleanResponse.trim();
+                
+                return cleanResponse;
+            }
+
+                formatCodeBlocks(text) {
+                    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+
+                    return text.replace(codeBlockRegex, (match, lang, code) => {
+                        const language = lang ? lang.toLowerCase() : "code";
+                        const languageLabel = language.charAt(0).toUpperCase() + language.slice(1);
+
+                        const escapedCode = code
+                            .replace(/&/g, "&amp;")
+                            .replace(/</g, "&lt;")
+                            .replace(/>/g, "&gt;");
+
+                        return `
+                            <div class="code-block" data-code="${encodeURIComponent(code)}" data-lang="${language}">
+                                <div class="code-header">
+                                    <span class="code-lang">${languageLabel}</span>
+                                    <div class="code-buttons">
+                                        <button class="copy-button">Copy</button>
+                                        ${language === "html" ? `<button class="try-button">Try</button>` : ""}
+                                    </div>
+                                </div>
+                                <pre><code class="language-${language}">${escapedCode}</code></pre>
+                                <div class="try-canvas" style="display:none;"></div>
+                            </div>
+                        `;
+                    });
+                }
+
+                formatAIText(text) {
+                    let formattedText = text
+                        .replace(/\\n/g, '\n')
+                        .replace(/\r/g, '');
+
+                    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+                    const codeBlocks = [];
+                    formattedText = formattedText.replace(codeBlockRegex, (match, lang, code) => {
+                        codeBlocks.push({ lang, code });
+                        return `[[CODE_BLOCK_${codeBlocks.length - 1}]]`;
+                    });
+
+                    formattedText = formattedText.replace(/\n/g, '<br>');
+
+                    codeBlocks.forEach((block, i) => {
+                        const language = block.lang ? block.lang.toLowerCase() : 'code';
+                        const label = language.charAt(0).toUpperCase() + language.slice(1);
+
+                        const escapedCode = block.code
+                            .replace(/&/g, '&amp;')
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;');
+
+                        const codeHTML = `
+                            <div class="code-block" data-code="${encodeURIComponent(block.code)}" data-lang="${language}">
+                                <div class="code-header">
+                                    <span class="code-lang">${label}</span>
+                                    <div class="code-buttons">
+                                        <button class="copy-button">Copy</button>
+                                        ${language === "html" ? `<button class="try-button">Try</button>` : ""}
+                                    </div>
+                                </div>
+                                <pre><code class="language-${language}">${escapedCode}</code></pre>
+                                <div class="try-canvas" style="display:none;"></div>
+                            </div>
+                        `;
+
+                        formattedText = formattedText.replace(`[[CODE_BLOCK_${i}]]`, codeHTML);
+                    });
+
+                    return formattedText;
+                }
+
+            typeWriterEffect(element, text, speed = 30) {
+                let i = 0;
+                element.innerHTML = '';
+                
+                const typeWriter = () => {
+                    if (i < text.length) {
+                        if (text.charAt(i) === '<') {
+                            const tagEnd = text.indexOf('>', i);
+                            if (tagEnd !== -1) {
+                                element.innerHTML = text.substring(0, tagEnd + 1);
+                                i = tagEnd + 1;
+                            } else {
+                                element.innerHTML += text.charAt(i);
+                                i++;
+                            }
+                        } else {
+                            element.innerHTML = text.substring(0, i + 1);
+                            i++;
+                        }
+                        
+                        this.scrollToBottom();
+                        
+                        setTimeout(typeWriter, speed);
+                    } else {
+                        setTimeout(() => this.cleanMessageElements(), 100);
+                    }
+                };
+                
+                typeWriter();
+            }
+            
+            showAIResponse(aiResponse) {
+                this.conversationContainer.style.display = 'block';
+                this.addAIMessage(aiResponse);
+                setTimeout(() => this.cleanMessageElements(), 100);
+
+
+            }
+            
+            showAIEmoji(emoji) {
+                if (!this.aiEmojiContainer) return;
+                this.aiEmoji.textContent = emoji;
+                this.aiEmojiContainer.classList.add('show');
+                setTimeout(() => this.hideAIEmoji(), 5000);
+            }
+            
+            hideAIEmoji() {
+                if (this.aiEmojiContainer) this.aiEmojiContainer.classList.remove('show');
+            }
+            
+            activate() {
+                this.isActive = true;
+                this.isAnimating = true;
+                this.sidebar.classList.add('active');
+                this.mainContent.classList.add('shifted');
+                setTimeout(() => { this.isAnimating = false; }, 150);
+            }
+            
+            deactivate() {
+                this.isActive = false;
+                this.isAnimating = true;
+                this.sidebar.classList.remove('active');
+                this.mainContent.classList.remove('shifted');
+                setTimeout(() => { this.isAnimating = false; }, 150);
+            }
+            
+            addQuestionToSidebar(question) {
+                const questionItem = document.createElement('div');
+                questionItem.className = 'question-item';
+                questionItem.textContent = question;
+                questionItem.addEventListener('click', () => {
+                    this.inputBox.textContent = question;
+                    this.inputBox.focus();
+                });
+                this.questionsContainer.appendChild(questionItem);
+            }
+            
+            blink() {
+                if (this.faceContainer.style.display === 'none') return;
+                const eyes = this.faceContainer.querySelectorAll('.eye');
+                eyes.forEach(eye => {
+                    eye.style.height = '2px';
+                    eye.style.borderRadius = '1px';
+                });
+                
+                setTimeout(() => {
+                    eyes.forEach(eye => {
+                        eye.style.height = '';
+                        eye.style.borderRadius = '';
+                    });
+                    setTimeout(() => this.blink(), 2000 + Math.random() * 3000);
+                }, 150);
+            }
+
+            setExpression(expression) {
+                this.faceContainer.className = 'face-container expression-' + expression;
+            }
+
+            async speak(textWithTags) {
+                if (this.voices.length === 0) {
+                    this.voices = speechSynthesis.getVoices();
+                     if (this.voices.length === 0) {
+                         await new Promise(resolve => setTimeout(resolve, 100));
+                         this.voices = speechSynthesis.getVoices();
+                    }
+                }
+
+                const parts = textWithTags.split(/(\[\w+\])/g).filter(p => p.trim());
+                let currentExpression = 'normal';
+
+                const speakPart = (index) => {
+                    return new Promise(resolve => {
+                        if (index >= parts.length) {
+                            this.setExpression('normal');
+                            resolve();
+                            return;
+                        }
+
+                        let part = parts[index];
+                        const exprMatch = part.match(/\[(\w+)\]/);
+
+                        if (exprMatch) {
+                            currentExpression = exprMatch[1];
+                            speakPart(index + 1).then(resolve);
+                        } else {
+                            this.setExpression(currentExpression);
+                            const utterance = new SpeechSynthesisUtterance(part);
+                            const googleVoice = this.voices.find(v => v.name === 'Google US English');
+                            utterance.voice = googleVoice || this.voices.find(v => v.lang === 'en-US');
+                            utterance.rate = 0.95;
+                            utterance.pitch = 1.1;
+                            
+                            utterance.onend = () => speakPart(index + 1).then(resolve);
+                            utterance.onerror = (e) => {
+                                console.error("Speech synthesis error", e);
+                                speakPart(index + 1).then(resolve);
+                            };
+                            speechSynthesis.speak(utterance);
+                        }
+                    });
+                };
+
+                speechSynthesis.cancel();
+                await speakPart(0);
+            }
+
+            async initVoice() {
+                if (!('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)) {
+                    alert('Sorry, your browser does not support voice recognition.');
+                    return;
+                }
+                try {
+                    await navigator.mediaDevices.getUserMedia({ audio: true });
+                    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+                    this.recognition = new SpeechRecognition();
+                    this.recognition.continuous = true;
+                    this.recognition.lang = 'en-US';
+                    this.recognition.interimResults = false;
+
+                    this.recognition.onstart = () => {
+                        console.log('Voice listening started...');
+                        this.setExpression('surprised');
+                    };
+                    
+                    this.recognition.onresult = async (event) => {
+                        if (this.isProcessingVoice) return;
+                        const transcript = event.results[event.resultIndex][0].transcript;
+                        console.log('Recognized:', transcript);
+                        this.isProcessingVoice = true;
+                        
+                        this.setExpression('thinking');
+                        const responseText = await this.getAIResponse(transcript, true);
+                        await this.speak(responseText);
+                        
+                        this.isProcessingVoice = false;
+                    };
+                    
+                    this.recognition.onerror = (event) => {
+                        console.error('Recognition error:', event.error);
+                        if (event.error === 'not-allowed') alert('Please allow microphone access.');
+                        this.setExpression('normal');
+                    };
+                    
+                    this.recognition.onend = () => {
+                        if (this.faceContainer.style.display !== 'none' && !this.isProcessingVoice) {
+                            console.log('Restarting recognition...');
+                            try { this.recognition.start(); } catch(e) { console.error("Could not restart recognition:", e); }
+                        }
+                    };
+                    
+                    this.recognition.start();
+                    await this.speak('[happy] Voice feature activated. How can I help you?');
+                    setTimeout(() => this.blink(), 3000);
+                    
+                } catch (error) {
+                    console.error('Failed to initialize voice:', error);
+                    alert('Cannot start voice feature. Please check microphone permissions.');
+                    this.restoreTitle(document.querySelector('.special-o'));
+                }
+            }
+        }
+
+            document.addEventListener('click', (event) => {
+                const copyBtn = event.target.closest('.copy-button');
+                const tryBtn = event.target.closest('.try-button');
+
+                if (copyBtn) {
+                    const block = copyBtn.closest('.code-block');
+                    if (!block) return;
+                    const code = decodeURIComponent(block.dataset.code || '');
+
+                    navigator.clipboard.writeText(code)
+                        .then(() => {
+                            copyBtn.textContent = 'Copied!';
+                            setTimeout(() => (copyBtn.textContent = 'Copy'), 1500);
+                        })
+                        .catch(() => {
+                            copyBtn.textContent = 'Error';
+                            setTimeout(() => (copyBtn.textContent = 'Copy'), 1500);
+                        });
+                }
+
+                if (tryBtn) {
+                    const block = tryBtn.closest('.code-block');
+                    if (!block) return;
+                    const lang = block.dataset.lang || 'code';
+                    const code = decodeURIComponent(block.dataset.code || '');
+
+                    if (lang !== 'html') {
+                        alert('Try is only available for HTML code.');
+                        return;
+                    }
+
+                    const tryWindow = document.createElement('div');
+                    tryWindow.className = 'try-window';
+
+                    tryWindow.innerHTML = `
+                        <div class="try-window-header">
+                            <span>HTML Preview</span>
+                            <button class="try-close">&times;</button>
+                        </div>
+                        <iframe class="try-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+                    `;
+
+                    document.body.appendChild(tryWindow);
+
+                    const iframe = tryWindow.querySelector('.try-iframe');
+                    iframe.srcdoc = code;
+
+                    setTimeout(() => tryWindow.classList.add('show'), 10);
+
+                    const closeBtn = tryWindow.querySelector('.try-close');
+                    closeBtn.addEventListener('click', () => {
+                        tryWindow.classList.remove('show');
+                        setTimeout(() => tryWindow.remove(), 300);
+                    });
+
+                    tryWindow.addEventListener('click', (e) => {
+                        if (e.target === tryWindow) {
+                            closeBtn.click();
+                        }
+                    });
+                }
+            });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new Sidebar();
+        });
+    </script>
+
+</body>
+</html>
